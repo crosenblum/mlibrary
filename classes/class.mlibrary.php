@@ -1,0 +1,572 @@
+<?php
+
+/**
+ * Movie Library Class
+ *
+ * This package contains functions used in organizing, displaying and streaming your local movies/tvshows and music
+ *
+ * @author Craig M. Rosenblum <crosenblum@gmail.com>
+ * @date 12/15/2014
+ */
+ 
+class mlibrary {
+
+	public function navigation() {
+	
+		echo "<nav>";
+		echo "<ul>";
+		echo "<li><a href='index.php' class='selected'>Home</a></li>";
+		echo "<li><a href='movies.php'>Movies</a></li>";
+		echo "<li><a href='#'>TV Shows</a></li>";
+		echo "<li><a href='#'>Music</a></li>";
+		echo "<li><a href='#'>About</a></li>";
+		echo "<li><a href='#'>The Team</a></li>";
+		echo "<li><a href='#'>Journal</a></li>";
+		echo "<li><a href='#'>Contact Us</a></li>";
+		echo "</ul>";
+		echo "</nav>";
+
+	}
+	
+	public function footer() {
+	
+		echo "<ul class='social clearfix'>";
+			echo "<li><a href='#' class='fb' data-title='Facebook'></a></li>";
+			echo "<li><a href='#' class='google' data-title='Google +'></a></li>";
+			echo "<li><a href='#' class='behance' data-title='Behance'></a></li>";
+			echo "<li><a href='#' class='dribble' data-title='Dribble'></a></li>";
+			echo "<li><a href='#' class='rss' data-title='RSS'></a></li>";
+		echo "</ul>";
+
+		echo "<div class='rights'>";
+			echo "<p>Copyright © 2014 magnetic.</p>";
+			echo "<p>Template by <a href=''>Pixelhint.com</a></p>";
+		echo "</div>";
+
+	}
+
+	public function show_latest_releases() {
+
+		// show all movies order by date desc for this year only
+
+		// get this year
+		$year=date("Y");
+		
+		// connect to database
+		$db = new PDO("mysql:dbname=mlibrary;host=localhost", "root", "4notrust" );
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+		// prepare statement
+		$stmt = $db->prepare('select title, year, imdbid, genre, director, writers, actors, plot, fanart, rating, votes, path from movies where year = :year limit 6');
+
+		// create bindparams array
+		$params = array
+		(
+			'year'=>"$year"
+		);							
+		
+		// add bind params
+		$stmt->execute($params);
+
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+		// loop thru query result
+		foreach($rows as $row) {
+
+			// output results
+			echo '<div class="work">';
+			echo '<a href="movie.php?id='.$row['imdbid'].'">';
+			echo '<img src="'.$row['fanart'].'" class="media" alt=""/>';
+			echo '<div class="caption">';
+			echo '<div class="work_title">';
+			echo '<h1>'.$row['title'].' ('.$row['year'].') </h1>';
+			echo '</div>';
+			echo '</div>';
+			echo '</a>';
+			echo '</div>';
+			
+		
+		}
+
+		// close connection
+		$db = NULL;
+		
+	}
+
+	public function show_movies() {
+	
+		// connect to database
+		$db = new PDO("mysql:dbname=mlibrary;host=localhost", "root", "4notrust" );
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+		// prepare statement
+		$stmt = $db->prepare('select title, year, imdbid, genre, director, writers, actors, plot, fanart, rating, votes, path from movies order by rating desc, year desc');
+
+		// add bind params
+		$stmt->execute();
+
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+		// loop thru query result
+		foreach($rows as $row) {
+
+			// output results
+			echo '<div class="work">';
+			echo '<a href="movie.php?id='.$row['imdbid'].'">';
+			echo '<img src="'.$row['fanart'].'" class="media" alt=""/>';
+			echo '<div class="caption">';
+			echo '<div class="work_title">';
+			echo '<h1>'.stripslashes($row['title']).' ('.$row['year'].') </h1>';
+			echo '</div>';
+			echo '</div>';
+			echo '</a>';
+			echo '</div>';
+			
+		
+		}
+
+		// close connection
+		$db = NULL;
+	
+	}
+	
+	
+	public function find_movie($imdbid) {
+	
+		// create single_movie_array
+		$movie=array();
+	
+		// connect to database
+		$db = new PDO("mysql:dbname=mlibrary;host=localhost", "root", "4notrust" );
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+		// prepare statement
+		$stmt = $db->prepare('select title, year, imdbid, genre, director, writers, actors, plot, fanart, rating, votes, path from movies where imdbid = :imdbid');
+
+		// create bindparams array
+		$params = array
+		(
+			'imdbid'=>"$imdbid"
+		);							
+		
+		// add bind params
+		$stmt->execute($params);
+
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+		// loop thru query result
+		foreach($rows as $row) {
+
+			// get each field from query
+			$movie['title']=$row['title'];
+			$movie['year']=$row['year'];
+			$movie['imdbid']=$row['imdbid'];
+			$movie['genre']=$row['genre'];
+			$movie['director']=$row['director'];
+			$movie['writers']=$row['writers'];
+			$movie['actors']=$row['actors'];
+			$movie['plot']=$row['plot'];
+			$movie['fanart']=$row['fanart'];
+			$movie['rating']=$row['rating'];
+			$movie['votes']=$row['votes'];
+			$movie['path']=$row['path'];
+			
+
+		}
+
+		// close connection
+		$db = NULL;
+		
+		// get the movie filename
+		$gl = glob($movie['path'].'/*.{avi,mkv,mpg,mp4,wmv}', GLOB_BRACE);
+
+		// create movie files array
+		$mf = array();
+
+		foreach($gl as $file) {
+
+			// add to the mf array
+			$mf['filename'] = basename($file);
+			$mf['filesize'] = filesize($file);
+
+		}
+
+		// sort the mf array by filesize desc
+		krsort($mf);
+		
+		// set the movie filename
+		$movie['filename'] = $mf['filename'];
+		
+		// return result
+		return $movie;
+	
+	}
+	
+	public function play_movie($file) {
+	
+		// grabbed from https://raw.githubusercontent.com/tuxxin/MP4Streaming/master/streamer.php
+		$fp = @fopen($file, 'rb');
+
+
+		// File size
+		$size = filesize($file); 
+
+		// Content length
+		$length = $size;
+
+		// Start byte
+		$start = 0;
+
+		// End byte
+		$end = $size - 1;
+		header('Content-type: video/mp4');
+
+		//header("Accept-Ranges: 0-$length");
+		header("Accept-Ranges: bytes");
+
+		if (isset($_SERVER['HTTP_RANGE'])) {
+
+			$c_start = $start;
+			$c_end = $end;
+			list(, $range) = explode('=', $_SERVER['HTTP_RANGE'], 2);
+
+			if (strpos($range, ',') !== false) {
+				header('HTTP/1.1 416 Requested Range Not Satisfiable');
+				header("Content-Range: bytes $start-$end/$size");
+				exit;
+			}
+	
+			if ($range == '-') {
+				$c_start = $size - substr($range, 1);
+			}else{
+				$range = explode('-', $range);
+				$c_start = $range[0];
+				$c_end = (isset($range[1]) && is_numeric($range[1])) ? $range[1] : $size;
+			}
+
+			$c_end = ($c_end > $end) ? $end : $c_end;
+	
+			if ($c_start > $c_end || $c_start > $size - 1 || $c_end >= $size) {
+				header('HTTP/1.1 416 Requested Range Not Satisfiable');
+				header("Content-Range: bytes $start-$end/$size");
+				exit;
+			}
+			$start = $c_start;
+			$end = $c_end;
+			$length = $end - $start + 1;
+			fseek($fp, $start);
+			header('HTTP/1.1 206 Partial Content');
+		}
+		header("Content-Range: bytes $start-$end/$size");
+		header("Content-Length: ".$length);
+		$buffer = 1024 * 8;
+		while(!feof($fp) && ($p = ftell($fp)) <= $end) {
+			if ($p + $buffer > $end) {
+				$buffer = $end - $p + 1;
+			}
+			set_time_limit(0);
+			echo fread($fp, $buffer);
+			flush();
+		}
+		fclose($fp);
+	
+	
+	}
+	
+	public function build_movies($path) {
+	
+
+		// get get array created manually
+		$movies=$this->build_movies_array($path);
+
+		// save it as a mysql database and table
+		$this->build_movies_mysql($movies);
+	
+	}
+
+	
+	public function build_movies_mysql($movie_path) {
+	
+	
+		// connect to database
+		$db = new PDO("mysql:dbname=mlibrary;host=localhost", "root", "4notrust" );
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		
+		// drop table if exists
+		$db->exec('DROP TABLE IF EXISTS movies');
+		
+		// create table
+		$db->exec('CREATE TABLE IF NOT EXISTS movies (`id` INT NOT NULL AUTO_INCREMENT, `title` varchar(100), `year` varchar(4), `imdbid` varchar(20), `genre` varchar(50), `director` varchar(30), `writers` varchar(50), `actors` varchar(100), `plot` varchar(255), `fanart` varchar(255), `rating` varchar(20), `votes` varchar(20), `path` varchar(255), PRIMARY KEY (`id`)) ');
+	
+		// scan incoming path into dir object
+		$dir = scandir($movie_path);
+		
+		// loop through each folder
+		foreach($dir as $file) {
+			if(($file!='..') && ($file!='.')) {
+
+				// setup filename and filepath
+				$filepath=$movie_path."/".$file;
+				$filename=$filepath."/movie.nfo";
+
+				// now check for movie.nfo
+				if (file_exists($filename)) {
+		
+					// read xml file into variable
+					$data = file_get_contents($filename);
+			
+					// get individual fields from movie.nfo
+					$title=$this->getXmlValueByTag($data,"Title");
+					$year=$this->getXmlValueByTag($data,"Year");
+					$imdbid=$this->getXmlValueByTag($data,"id");
+					$genre=$this->getXmlValueByTag($data,"Genre");
+					$director=$this->getXmlValueByTag($data,"Director");
+					$writers=$this->getXmlValueByTag($data,"Writer");
+					$actors=$this->getXmlValueByTag($data,"Actors");
+					$plot=$this->getXmlValueByTag($data,"Plot");
+					$fanart=$this->getXmlValueByTag($data,"fanart");
+					$rating=$this->getXmlValueByTag($data,"imdbRating");
+					$votes=$this->getXmlValueByTag($data,"imdbVotes");
+					
+					// escape single quotes
+					$title=$string = str_replace("'","\\'", $title);
+					$plot=$string = str_replace("'","\\'", $plot);
+
+					// do sql to  check if this row already exists
+					$check = "SELECT title FROM movies where imdbid = '$imdbid'";
+					$stmt = $db->query($check);
+					$row=$stmt->fetch(PDO::FETCH_ASSOC);
+					
+					if( ! $row) {
+					
+						// start try/catch
+						try {
+							// generate pdo mysql prepared insert
+							$stmt = $db->prepare("INSERT INTO movies (`title`, `year`, `imdbid`, `genre`, `director`, `writers`, `actors`, `plot`, `fanart`, `rating`, `votes`, `path`) VALUES (:title, :year, :imdbid, :genre, :director, :writers, :actors, :plot, :fanart, :rating, :votes, :path)");
+							
+							// create bindparams array
+							$params = array
+							(
+								'title'=>"$title",
+								'year'=>"$year",
+								'imdbid'=>"$imdbid",
+								'genre'=>"$genre",
+								'director'=>"$director",
+								'writers'=>"$writers",
+								'actors'=>"$actors",
+								'plot'=>"$plot",
+								'fanart'=>"$fanart",
+								'rating'=>"$rating",
+								'votes'=>"$votes",
+								'path'=>"$filepath"
+							);							
+							
+							// now execute the sql
+							$stmt->execute($params);
+							
+		
+							echo "Success: [$title ($year)]<br/>";
+					
+						} catch (PDOException $e) {
+							// show debug info
+							echo "INSERT INTO movies (title, year, imdbid, genre, director, writers, actors, plot, fanart, rating, votes, path) <br/>VALUES ('$title','$year','$imdbid','$genre','$director','$writers','$actors','$plot','$fanart','$rating','$votes,'$filepath')<br/><br/>";
+							echo "Error<br/>";
+							print_r($db->errorCode());
+							echo "<br/>";
+							print_r($db->errorInfo());
+							echo "<br/><br/>";	
+							echo "DataBase Error:";
+							print_r($e);
+							echo "<br/><br/>";	
+							exit;
+						}
+					}
+
+				}
+		
+			}
+		}
+
+		// close connection
+		$db = NULL;
+		
+	}
+	
+	public function update_movies_table() {
+	
+		// connect to database
+		$db = new PDO("mysql:dbname=mlibrary;host=localhost", "root", "4notrust" );
+	
+		// get writers, actors, rating, votes
+		$sql="SELECT id, title, year, imdbid from movies order by title asc";
+		
+		// prepare sql statement
+		$stmt = $db->exec($sql);
+
+		// loop thru results		
+		for($i=0 ; $i<$stmt->rowCount() ; $i++){
+			
+			// grab row
+			$row = $stmt->fetch();
+			
+			// get id, title, year and imdbid
+			$id = $row['id'];
+			$title = $row['title'];
+			$year = $row['year'];
+			$imdbid = $row['imdbid'];
+			
+			// retrieve array
+			$imdb = $this->get_imdb($title,$year);
+			
+		}
+		
+		// close connection
+		$db = NULL;
+	
+	}
+	
+
+	public function build_movies_array($path) {
+	
+		// scan incoming path into dir object
+		$dir = scandir($path);
+		
+		// create movie array
+		$movies=array();
+
+		// loop through each folder
+		foreach($dir as $file) {
+			if(($file!='..') && ($file!='.')) {
+
+				// setup filename and filepath
+				$filepath=$path."/".$file;
+				$filename=$filepath."/movie.nfo";
+
+				// now check for movie.nfo
+				if (file_exists($filename)) {
+		
+					// read xml file into variable
+					$data = file_get_contents($filename);
+			
+					// get individual fields from movie.nfo
+					$title=$this->getXmlValueByTag($data,"Title");
+					$year=$this->getXmlValueByTag($data,"Year");
+					$imdbid=$this->getXmlValueByTag($data,"id");
+					$genre=$this->getXmlValueByTag($data,"Genre");
+					$director=$this->getXmlValueByTag($data,"Director");
+					$writers=$this->getXmlValueByTag($data,"Writer");
+					$actors=$this->getXmlValueByTag($data,"Actors");
+					$plot=$this->getXmlValueByTag($data,"Plot");
+					$fanart=$this->getXmlValueByTag($data,"fanart");
+					$rating=$this->getXmlValueByTag($data,"imdbRating");
+					$votes=$this->getXmlValueByTag($data,"imdbVotes");
+
+					// append to array now
+					$movies[]['Title']=$title;
+					$movies[]['Year']=$year;
+					$movies[]['ImdbID']=$imdbid;
+					$movies[]['Genre']=$genre;
+					$movies[]['Director']=$director;
+					$movies[]['Writer']=$writers;
+					$movies[]['Actors']=$actors;
+					$movies[]['Plot']=$plot;
+					$movies[]['Fanart']=$fanart;
+					$movies[]['Rating']=$rating;
+					$movies[]['Votes']=$votes;
+					$movies[]['Path']=$filepath;
+			
+				}
+		
+			}
+		}
+
+		// now return this array
+		return $movies;
+	
+	}
+
+	public function get_content($URL){
+	  $ch = curl_init();
+	  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	  curl_setopt($ch, CURLOPT_URL, $URL);
+	  $data = curl_exec($ch);
+	  curl_close($ch);
+	  return $data;
+	}
+
+	public function get_imdb($title,$year) {
+
+		// setup new array
+		$imdb = array();
+
+		// if no year try without year
+		if (empty($year) || $year == '') {
+
+			// grab imdb data from omdbapi.com
+			// http://www.omdbapi.com/?t=True%20Grit&y=1969
+			$o_url = 'http://www.omdbapi.com/?t='.trim(urlencode($title)).'&r=json';
+		
+		} else {
+
+			// grab imdb data from omdbapi.com
+			// http://www.omdbapi.com/?t=True%20Grit&y=1969
+			$o_url = 'http://www.omdbapi.com/?t='.trim(urlencode($title)).'&y='.$year.'&r=json';
+
+		}
+
+		// get content via curl
+		$string=$this->get_content($o_url);
+		$json=json_decode($string,true);
+
+		// check if json is empty
+		if (!empty($json)) {
+
+			// check for error response
+			if (!array_key_exists('Error', $json)) {
+
+				// extract data from json
+				foreach ($json as $key => $val) {
+					if(!is_array($val)) {
+
+						// add to imdb array
+						$imdb[$key]=$val;
+
+					}
+				}
+
+				// append the url to the key
+				$imdb['url'] = $url;
+			}
+
+		}
+
+		// return the array
+		return $imdb;
+
+	}
+
+
+	public function getXmlValueByTag($inXmlset,$needle){
+
+		//Create an XML parser
+		$resource = xml_parser_create();
+
+		// Parse XML data into an array structure
+		xml_parse_into_struct($resource, $inXmlset, $outArray);
+
+		//Free an XML parser
+		xml_parser_free($resource);
+		$tagValue="";
+	   
+		for($i=0;$i<count($outArray);$i++){
+		    if($outArray[$i]['tag']==strtoupper($needle)){
+				if ( isset( $outArray[$i]['value'] )) {
+			        $tagValue = $outArray[$i]['value'];
+			    }
+		    }
+		}
+		return $tagValue;
+	} 
+}
+
+?>

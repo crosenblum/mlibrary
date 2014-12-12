@@ -1,0 +1,58 @@
+<?php
+
+// this is the mlibrary web app - designed to surf local dlna servers
+// and create a beautiful local entertainment library
+
+//setup error display
+ini_set('display_errors', 'On');
+error_reporting(E_ALL);
+
+// call stream class object and create it
+require_once('classes/class.mlibrary.php');
+
+// create object
+$mlibrary = new mlibrary();
+
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>mLibrary - Your Local Movie Library</title>
+	<meta charset="utf-8">
+	<meta name="author" content="Craig M. Rosenblum">
+	<meta name="description" content="mLibrary Your local movies/tvshows/music library"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
+	<link rel="stylesheet" type="text/css" href="css/reset.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
+</head>
+<body>
+
+	<header>
+		<div class="logo">
+			<a href="index.html"><img src="img/logo.png" title="Magnetic" alt="Magnetic"/></a>
+		</div><!-- end logo -->
+
+		<div id="menu_icon"></div>
+		<?php echo $mlibrary->navigation(); ?>
+
+		<div class="footer clearfix">
+			<?php echo $mlibrary->footer(); ?>
+		</div >
+		<!-- end footer -->
+
+	</header>
+	<!-- end header -->
+
+	<section class="main clearfix">
+	
+		<!--- display movie fanart here --->
+		<?php echo $mlibrary->show_movies(); ?>
+		
+	</section><!-- end main -->
+	
+</body>
+</html>		
